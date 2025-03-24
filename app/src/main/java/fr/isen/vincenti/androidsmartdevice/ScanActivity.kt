@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import fr.isen.vincenti.androidsmartdevice.ui.theme.AndroidSmartDeviceTheme
+import fr.isen.vincenti.androidsmartdevice.views.ScanScreen
 import fr.isen.vincenti.androidsmartdevice.views.TopBar
 
 class ScanActivity : ComponentActivity() {
@@ -23,10 +24,7 @@ class ScanActivity : ComponentActivity() {
                 Scaffold(
                     topBar = {TopBar()},
                     modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting2(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    ScanScreen(Modifier.padding(innerPadding))
                 }
             }
         }
