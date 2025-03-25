@@ -39,61 +39,14 @@ import androidx.compose.ui.unit.dp
 import fr.isen.vincenti.androidsmartdevice.Device
 
 @Composable
-fun ScanScreen(modifier: Modifier, context: Context) {
-
+fun ScanScreen(
+    modifier: Modifier,
+    devices: List<Device>,
+    isScanning: Boolean,
+    onScanToggle: () -> Unit,
+    context: Context
+) {
     val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
-    val bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner
-
-    var isScanning by remember { mutableStateOf(false) }
-    val devices = remember { mutableStateListOf<Device>() }
-
-    val scanCallback = remember {
-        object : ScanCallback() {
-            override fun onScanResult(callbackType: Int, result: ScanResult) {
-                val deviceName = result.device.name
-                if (!deviceName.isNullOrBlank()) {
-                    val newDevice = Device(
-                        signal = result.rssi,
-                        name = deviceName,
-                        macaddress = result.device.address
-                    )
-                    if (devices.none { it.macaddress == newDevice.macaddress }) {
-                        devices.add(newDevice)
-                    }
-                }
-            }
-
-            override fun onBatchScanResults(results: List<ScanResult>) {
-                results.forEach { result ->
-                    val deviceName = result.device.name
-                    if (!deviceName.isNullOrBlank()) {
-                        val newDevice = Device(
-                            signal = result.rssi,
-                            name = deviceName,
-                            macaddress = result.device.address
-                        )
-                        if (devices.none { it.macaddress == newDevice.macaddress }) {
-                            devices.add(newDevice)
-                        }
-                    }
-                }
-            }
-
-            override fun onScanFailed(errorCode: Int) {
-                Toast.makeText(context, "Scan échoué: $errorCode", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    fun toggleScan() {
-        if (isScanning) {
-            bluetoothLeScanner?.stopScan(scanCallback)
-        } else {
-            devices.clear()
-            bluetoothLeScanner?.startScan(scanCallback)
-        }
-        isScanning = !isScanning
-    }
 
     Column(
         modifier = modifier
@@ -106,9 +59,7 @@ fun ScanScreen(modifier: Modifier, context: Context) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = if (isScanning) "Scan en cours..." else "Lancer le scan BLE",
-            )
+            Text(text = if (isScanning) "Scan en cours..." else "Lancer le scan BLE")
             Icon(
                 imageVector = if (isScanning) Icons.Default.Pause else Icons.Default.PlayArrow,
                 contentDescription = null,
@@ -118,9 +69,11 @@ fun ScanScreen(modifier: Modifier, context: Context) {
                     .padding(8.dp)
                     .clickable {
                         when {
-                            bluetoothAdapter == null -> Toast.makeText(context, "Bluetooth non disponible", Toast.LENGTH_SHORT).show()
-                            !bluetoothAdapter.isEnabled -> Toast.makeText(context, "Bluetooth non activé", Toast.LENGTH_SHORT).show()
-                            else -> toggleScan()
+                            bluetoothAdapter == null ->
+                                Toast.makeText(context, "Bluetooth non disponible", Toast.LENGTH_SHORT).show()
+                            !bluetoothAdapter.isEnabled ->
+                                Toast.makeText(context, "Bluetooth non activé", Toast.LENGTH_SHORT).show()
+                            else -> onScanToggle()
                         }
                     }
             )
@@ -130,12 +83,6 @@ fun ScanScreen(modifier: Modifier, context: Context) {
                 DeviceItem(devices[index])
                 HorizontalDivider(modifier = Modifier.padding(8.dp))
             }
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            bluetoothLeScanner?.stopScan(scanCallback)
         }
     }
 }

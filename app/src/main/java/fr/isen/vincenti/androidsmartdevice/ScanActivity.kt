@@ -19,31 +19,98 @@ import fr.isen.vincenti.androidsmartdevice.ui.theme.AndroidSmartDeviceTheme
 import fr.isen.vincenti.androidsmartdevice.views.ScanScreen
 import fr.isen.vincenti.androidsmartdevice.views.TopBar
 import android.Manifest
+import android.bluetooth.BluetoothManager
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
+import android.content.Context
+import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 
 class ScanActivity : ComponentActivity() {
     val context = this
     private val REQUEST_CODE_BLUETOOTH_PERMISSIONS = 1
 
+    private val bluetoothLeScanner by lazy {
+        (getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter.bluetoothLeScanner
+    }
+
+    val devices = mutableStateListOf<Device>()
+    var isScanning by mutableStateOf(false)
+
+    private val scanCallback = object : ScanCallback() {
+        override fun onScanResult(callbackType: Int, result: ScanResult) {
+            val deviceName = result.device.name
+            if (!deviceName.isNullOrBlank()) {
+                val newDevice = Device(
+                    signal = result.rssi,
+                    name = deviceName,
+                    macaddress = result.device.address
+                )
+                if (devices.none { it.macaddress == newDevice.macaddress }) {
+                    devices.add(newDevice)
+                }
+            }
+        }
+
+        override fun onScanFailed(errorCode: Int) {
+            Log.e("BLE_SCAN", "Scan échoué: $errorCode")
+        }
+    }
+
+    fun toggleScan() {
+        if (isScanning) {
+            bluetoothLeScanner.stopScan(scanCallback)
+        } else {
+            devices.clear()
+            bluetoothLeScanner.startScan(scanCallback)
+        }
+        isScanning = !isScanning
+    }
+
+    override fun onStop() {
+        super.onStop()
+        bluetoothLeScanner.stopScan(scanCallback)
+        isScanning = false
+    }
 
     private fun checkAndRequestBluetoothPermissions() {
         val permissions = mutableListOf<String>()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.BLUETOOTH_SCAN
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 permissions.add(Manifest.permission.BLUETOOTH_SCAN)
             }
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
             }
         } else {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
             }
         }
 
         if (permissions.isNotEmpty()) {
-            ActivityCompat.requestPermissions(context, permissions.toTypedArray(), REQUEST_CODE_BLUETOOTH_PERMISSIONS)
+            ActivityCompat.requestPermissions(
+                context,
+                permissions.toTypedArray(),
+                REQUEST_CODE_BLUETOOTH_PERMISSIONS
+            )
         }
     }
 
@@ -52,13 +119,20 @@ class ScanActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         checkAndRequestBluetoothPermissions()
         enableEdgeToEdge()
+
         setContent {
             AndroidSmartDeviceTheme {
                 Scaffold(
                     topBar = { TopBar() },
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
-                    ScanScreen(Modifier.padding(innerPadding), context)
+                    ScanScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        devices = devices,
+                        isScanning = isScanning,
+                        onScanToggle = { toggleScan() },
+                        context = this
+                    )
                 }
             }
         }
