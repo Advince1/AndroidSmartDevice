@@ -47,7 +47,10 @@ class DeviceActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
                     DeviceScreen(
-                        Modifier.padding(innerPadding), context = this, device = device, isConnected = isConnected.value, onLedToggle = { ledId -> toggleLed(ledId) }
+                        Modifier.padding(innerPadding),
+                        device = device,
+                        isConnected = isConnected.value,
+                        onLedToggle = { ledId -> toggleLed(ledId) }
                     )
                 }
             }
@@ -56,7 +59,10 @@ class DeviceActivity : ComponentActivity() {
     }
 
     @SuppressLint("MissingPermission")
-    private fun connectToDevice(macAddress: String, isConnected: androidx.compose.runtime.MutableState<Boolean>) {
+    private fun connectToDevice(
+        macAddress: String,
+        isConnected: androidx.compose.runtime.MutableState<Boolean>
+    ) {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val bluetoothAdapter = bluetoothManager.adapter
         val device: BluetoothDevice? = bluetoothAdapter.getRemoteDevice(macAddress)
@@ -87,25 +93,27 @@ class DeviceActivity : ComponentActivity() {
     private fun toggleLed(ledId: Int) {
         bluetoothGatt?.let { gatt ->
             val characteristic = gatt.services[2].characteristics[0]
-            val command = when (ledId) {
-                1 -> 0x01
-                2 -> 0x02
-                3 -> 0x03
-                else -> 0x00
-            }
-
-            if (isLedOn[ledId] == true) {
-                characteristic.value = byteArrayOf(0x00)
-                isLedOn[ledId] = false
+            val currentlyOn = isLedOn[ledId] ?: false
+            val command = if (currentlyOn) {
+                0x00
             } else {
-                characteristic.value = byteArrayOf(command.toByte())
-                isLedOn[ledId] = true
+                when (ledId) {
+                    1 -> 0x01
+                    2 -> 0x02
+                    3 -> 0x03
+                    else -> 0x00
+                }
             }
-
+            isLedOn[ledId] = !currentlyOn
+            characteristic.value = byteArrayOf(command.toByte())
             gatt.writeCharacteristic(characteristic)
+            if (!currentlyOn) {
+                isLedOn.keys.forEach { key ->
+                    if (key != ledId) isLedOn[key] = false
+                }
+            }
         }
     }
-
 }
 
 @Composable
