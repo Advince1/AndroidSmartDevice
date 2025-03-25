@@ -1,5 +1,10 @@
 package fr.isen.vincenti.androidsmartdevice.views
 
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +25,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -32,12 +39,62 @@ import androidx.compose.ui.unit.dp
 import fr.isen.vincenti.androidsmartdevice.Device
 
 @Composable
-fun ScanScreen(modifier: Modifier) {
+fun ScanScreen(modifier: Modifier, context: Context) {
+
+    val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+    val bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner
+
     var isScanning by remember { mutableStateOf(false) }
-    var devices = listOf(
-        Device(signal = -45, name = "SmartWatch", macaddress = "00:11:22:33:44:55"),
-        Device(signal = -60, name = "Casque Audio", macaddress = "AA:BB:CC:DD:EE:FF")
-    )
+    val devices = remember { mutableStateListOf<Device>() }
+
+    val scanCallback = remember {
+        object : ScanCallback() {
+            override fun onScanResult(callbackType: Int, result: ScanResult) {
+                val deviceName = result.device.name
+                if (!deviceName.isNullOrBlank()) {
+                    val newDevice = Device(
+                        signal = result.rssi,
+                        name = deviceName,
+                        macaddress = result.device.address
+                    )
+                    if (devices.none { it.macaddress == newDevice.macaddress }) {
+                        devices.add(newDevice)
+                    }
+                }
+            }
+
+            override fun onBatchScanResults(results: List<ScanResult>) {
+                results.forEach { result ->
+                    val deviceName = result.device.name
+                    if (!deviceName.isNullOrBlank()) {
+                        val newDevice = Device(
+                            signal = result.rssi,
+                            name = deviceName,
+                            macaddress = result.device.address
+                        )
+                        if (devices.none { it.macaddress == newDevice.macaddress }) {
+                            devices.add(newDevice)
+                        }
+                    }
+                }
+            }
+
+            override fun onScanFailed(errorCode: Int) {
+                Toast.makeText(context, "Scan échoué: $errorCode", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    fun toggleScan() {
+        if (isScanning) {
+            bluetoothLeScanner?.stopScan(scanCallback)
+        } else {
+            devices.clear()
+            bluetoothLeScanner?.startScan(scanCallback)
+        }
+        isScanning = !isScanning
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -54,13 +111,17 @@ fun ScanScreen(modifier: Modifier) {
             )
             Icon(
                 imageVector = if (isScanning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = if (isScanning) "Pause Icon" else "Play Icon",
+                contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .size(64.dp)
                     .padding(8.dp)
                     .clickable {
-                        isScanning = !isScanning
+                        when {
+                            bluetoothAdapter == null -> Toast.makeText(context, "Bluetooth non disponible", Toast.LENGTH_SHORT).show()
+                            !bluetoothAdapter.isEnabled -> Toast.makeText(context, "Bluetooth non activé", Toast.LENGTH_SHORT).show()
+                            else -> toggleScan()
+                        }
                     }
             )
         }
@@ -69,6 +130,12 @@ fun ScanScreen(modifier: Modifier) {
                 DeviceItem(devices[index])
                 HorizontalDivider(modifier = Modifier.padding(8.dp))
             }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            bluetoothLeScanner?.stopScan(scanCallback)
         }
     }
 }
