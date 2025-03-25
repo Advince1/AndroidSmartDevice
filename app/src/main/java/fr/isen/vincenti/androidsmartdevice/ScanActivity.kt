@@ -19,10 +19,14 @@ import fr.isen.vincenti.androidsmartdevice.ui.theme.AndroidSmartDeviceTheme
 import fr.isen.vincenti.androidsmartdevice.views.ScanScreen
 import fr.isen.vincenti.androidsmartdevice.views.TopBar
 import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.Context
+import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -40,8 +44,10 @@ class ScanActivity : ComponentActivity() {
 
     val devices = mutableStateListOf<Device>()
     var isScanning by mutableStateOf(false)
+    private val handler = Handler(Looper.getMainLooper())
 
     private val scanCallback = object : ScanCallback() {
+        @SuppressLint("MissingPermission")
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val deviceName = result.device.name
             if (!deviceName.isNullOrBlank()) {
@@ -61,19 +67,38 @@ class ScanActivity : ComponentActivity() {
         }
     }
 
+    @SuppressLint("MissingPermission")
     fun toggleScan() {
         if (isScanning) {
             bluetoothLeScanner.stopScan(scanCallback)
+            handler.removeCallbacksAndMessages(null)
+            isScanning = false
         } else {
             devices.clear()
             bluetoothLeScanner.startScan(scanCallback)
+            isScanning = true
+
+            handler.postDelayed({
+                bluetoothLeScanner.stopScan(scanCallback)
+                isScanning = false
+            }, 10000)
         }
-        isScanning = !isScanning
     }
 
+    fun navigateToDeviceConnection(device: Device) {
+        val intent = Intent(this, DeviceActivity::class.java).apply {
+            putExtra("device_mac_address", device.macaddress)
+            putExtra("device_name", device.name)
+            putExtra("device_signal", device.signal)
+        }
+        startActivity(intent)
+    }
+
+    @SuppressLint("MissingPermission")
     override fun onStop() {
         super.onStop()
         bluetoothLeScanner.stopScan(scanCallback)
+        handler.removeCallbacksAndMessages(null)
         isScanning = false
     }
 
@@ -131,6 +156,7 @@ class ScanActivity : ComponentActivity() {
                         devices = devices,
                         isScanning = isScanning,
                         onScanToggle = { toggleScan() },
+                        onDeviceClick = { device -> navigateToDeviceConnection(device) },
                         context = this
                     )
                 }

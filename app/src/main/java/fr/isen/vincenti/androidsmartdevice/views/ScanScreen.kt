@@ -44,6 +44,7 @@ fun ScanScreen(
     devices: List<Device>,
     isScanning: Boolean,
     onScanToggle: () -> Unit,
+    onDeviceClick: (Device) -> Unit,
     context: Context
 ) {
     val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
@@ -80,7 +81,10 @@ fun ScanScreen(
         }
         LazyColumn {
             items(devices.size) { index ->
-                DeviceItem(devices[index])
+                DeviceItem(
+                    device = devices[index],
+                    modifier = Modifier.clickable { onDeviceClick(devices[index]) }
+                )
                 HorizontalDivider(modifier = Modifier.padding(8.dp))
             }
         }
@@ -88,19 +92,20 @@ fun ScanScreen(
 }
 
 @Composable
-fun DeviceItem(device: Device) {
+fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
     Row(
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
     ) {
         Box(
             modifier = Modifier
                 .padding(4.dp)
-                .background(MaterialTheme.colorScheme.primary,shape = RoundedCornerShape(8.dp)),
+                .background(MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(8.dp)),
         ) {
             Text(
                 text = "${device.signal}",
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White ,
+                color = Color.White,
                 modifier = Modifier.padding(16.dp)
             )
         }
