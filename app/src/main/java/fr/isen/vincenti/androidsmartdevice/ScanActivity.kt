@@ -28,6 +28,7 @@ import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +70,12 @@ class ScanActivity : ComponentActivity() {
 
     @SuppressLint("MissingPermission")
     fun toggleScan() {
+        if (!hasAllPermissions()) {
+            ActivityCompat.requestPermissions(this, checkAndRequestBluetoothPermissions(), REQUEST_CODE_BLUETOOTH_PERMISSIONS)
+            Toast.makeText(this, "Permissions manquantes", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         if (isScanning) {
             bluetoothLeScanner.stopScan(scanCallback)
             handler.removeCallbacksAndMessages(null)
@@ -102,40 +109,34 @@ class ScanActivity : ComponentActivity() {
         isScanning = false
     }
 
-    private fun checkAndRequestBluetoothPermissions() {
-        val permissions = mutableListOf<String>()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.BLUETOOTH_SCAN
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                permissions.add(Manifest.permission.BLUETOOTH_SCAN)
-            }
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.BLUETOOTH_CONNECT
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
-            }
-        } else {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
-            }
-        }
-
-        if (permissions.isNotEmpty()) {
-            ActivityCompat.requestPermissions(
-                context,
-                permissions.toTypedArray(),
-                REQUEST_CODE_BLUETOOTH_PERMISSIONS
+    private fun checkAndRequestBluetoothPermissions(): Array<String> {
+        return if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(
+                android.Manifest.permission.BLUETOOTH_SCAN,
+                android.Manifest.permission.BLUETOOTH_CONNECT,
+                android.Manifest.permission.BLUETOOTH_ADMIN,
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
             )
+        }
+        else if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            arrayOf(
+                android.Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+                android.Manifest.permission.BLUETOOTH_ADMIN,
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+            )
+        }
+        else{
+            arrayOf(
+                android.Manifest.permission.BLUETOOTH_ADMIN,
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+            )
+        }
+    }
+
+    private fun hasAllPermissions(): Boolean {
+        val permissions = checkAndRequestBluetoothPermissions()
+        return permissions.all {
+            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
         }
     }
 

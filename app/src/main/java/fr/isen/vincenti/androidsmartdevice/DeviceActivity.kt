@@ -5,7 +5,9 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
@@ -28,6 +30,10 @@ import fr.isen.vincenti.androidsmartdevice.views.TopBar
 class DeviceActivity : ComponentActivity() {
     private var bluetoothGatt: BluetoothGatt? = null
     private val isLedOn = mutableStateMapOf<Int, Boolean>()
+    private val cptb1 = mutableStateOf(0)
+    private val cptb3 = mutableStateOf(0)
+    private var notifCharButton1: BluetoothGattCharacteristic? = null
+    private var notifCharButton3: BluetoothGattCharacteristic? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -38,6 +44,9 @@ class DeviceActivity : ComponentActivity() {
         device.signal = intent.getIntExtra("device_signal", 0)
 
         val isConnected = mutableStateOf(false)
+        val isChecked1 = mutableStateOf(false)
+        val isChecked3 = mutableStateOf(false)
+
 
         enableEdgeToEdge()
         setContent {
@@ -50,7 +59,23 @@ class DeviceActivity : ComponentActivity() {
                         Modifier.padding(innerPadding),
                         device = device,
                         isConnected = isConnected.value,
-                        onLedToggle = { ledId -> toggleLed(ledId) }
+                        onLedToggle = { ledId -> toggleLed(ledId) },
+                        isChecked1 = isChecked1.value,
+                        isChecked3 = isChecked3.value,
+                        onCheckedChange1 = {
+                            toggleNotificationsFor(
+                                notifCharButton1,
+                                it
+                            ); isChecked1.value = it
+                        },
+                        onCheckedChange3 = {
+                            toggleNotificationsFor(
+                                notifCharButton3,
+                                it
+                            ); isChecked3.value = it
+                        },
+                        cptb1 = cptb1.value,
+                        cptb3 = cptb3.value
                     )
                 }
             }
@@ -70,13 +95,48 @@ class DeviceActivity : ComponentActivity() {
         bluetoothGatt = device?.connectGatt(this, false, object : BluetoothGattCallback() {
             override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
                 super.onConnectionStateChange(gatt, status, newState)
-                if (newState == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
+                if (newState == BluetoothProfile.STATE_CONNECTED) {
                     Log.i("BLE", "Connected to GATT server.")
                     isConnected.value = true
                     gatt?.discoverServices()
-                } else if (newState == android.bluetooth.BluetoothProfile.STATE_DISCONNECTED) {
+                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                     Log.i("BLE", "Disconnected from GATT server.")
                     isConnected.value = false
+                }
+            }
+
+            override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+                super.onServicesDiscovered(gatt, status)
+                notifCharButton1 = gatt?.services?.getOrNull(3)?.characteristics?.getOrNull(0)
+                notifCharButton3 = gatt?.services?.getOrNull(2)?.characteristics?.getOrNull(1)
+            }
+
+            override fun onCharacteristicChanged(
+                gatt: BluetoothGatt?,
+                characteristic: BluetoothGattCharacteristic?
+            ) {
+                super.onCharacteristicChanged(gatt, characteristic)
+                characteristic?.let {
+                    when (it.uuid) {
+                        notifCharButton1?.uuid -> {
+                            val value = it.value.firstOrNull()?.toInt() ?: return
+                            cptb1.value = value
+                            Log.d("BLE", "Bouton 1 = $value")
+                        }
+
+                        notifCharButton3?.uuid -> {
+                            val value = it.value.firstOrNull()?.toInt() ?: return
+                            cptb3.value = value
+                            Log.d("BLE", "Bouton 3 = $value")
+                        }
+
+                        else -> {
+                            Log.w(
+                                "BLE",
+                                "Notification reçue d'une caractéristique inconnue : ${it.uuid}"
+                            )
+                        }
+                    }
                 }
             }
         })
@@ -114,7 +174,31 @@ class DeviceActivity : ComponentActivity() {
             }
         }
     }
+
+    @SuppressLint("MissingPermission")
+    private fun toggleNotificationsFor(
+        characteristic: BluetoothGattCharacteristic?,
+        enable: Boolean
+    ) {
+        if (characteristic == null) return
+
+        bluetoothGatt?.setCharacteristicNotification(characteristic, enable)
+
+        val descriptor = characteristic.getDescriptor(
+            characteristic.descriptors.firstOrNull()?.uuid ?: return
+        )
+
+        descriptor.value = if (enable)
+            BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+        else
+            BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+
+        bluetoothGatt?.writeDescriptor(descriptor)
+
+    }
+
 }
+
 
 @Composable
 fun Greeting3(name: String, modifier: Modifier = Modifier) {
