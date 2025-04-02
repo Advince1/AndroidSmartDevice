@@ -1,6 +1,5 @@
 package fr.isen.vincenti.androidsmartdevice.views
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,13 +13,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.outlined.Lightbulb
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import fr.isen.vincenti.androidsmartdevice.Device
+import fr.isen.vincenti.androidsmartdevice.models.Device
 
 @Composable
 fun DeviceScreen(
@@ -51,12 +49,15 @@ fun DeviceScreen(
     cptb3: Int
 ) {
     val ledsState = remember { mutableStateMapOf(1 to false, 2 to false, 3 to false) }
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .verticalScroll(scrollState)
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Text(
             text = device.name.ifBlank { "Nom inconnu" },
@@ -78,7 +79,7 @@ fun DeviceScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -92,103 +93,120 @@ fun DeviceScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
         }
+
         if (!isConnected) {
-            Text(
-                text = "Connexion en cours...",
-                style = MaterialTheme.typography.bodyLarge
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Connexion en cours...",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                androidx.compose.material3.LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         } else {
+            Text(
+                text = "Contrôle des LEDs",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = if (ledsState[1] == true) Icons.Filled.Lightbulb else Icons.Outlined.Lightbulb,
-                    contentDescription = "LED Bleue",
-                    tint = Color.Blue,
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clickable {
-                            ledsState[1] = !(ledsState[1] ?: false)
-                            onLedToggle(1)
-                            ledsState[2] = false
-                            ledsState[3] = false
-                        }
-                )
+                LedIcon(1, ledsState[1] == true, Color.Blue) {
+                    ledsState[1] = !ledsState[1]!!
+                    onLedToggle(1)
+                    ledsState[2] = false
+                    ledsState[3] = false
+                }
+                LedIcon(2, ledsState[2] == true, Color.Green) {
+                    ledsState[2] = !ledsState[2]!!
+                    onLedToggle(2)
+                    ledsState[1] = false
+                    ledsState[3] = false
+                }
+                LedIcon(3, ledsState[3] == true, Color.Red) {
+                    ledsState[3] = !ledsState[3]!!
+                    onLedToggle(3)
+                    ledsState[1] = false
+                    ledsState[2] = false
+                }
+            }
 
-                Icon(
-                    imageVector = if (ledsState[2] == true) Icons.Filled.Lightbulb else Icons.Outlined.Lightbulb,
-                    contentDescription = "LED Verte",
-                    tint = Color.Green,
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clickable {
-                            ledsState[2] = !(ledsState[2] ?: false)
-                            onLedToggle(2)
-                            ledsState[1] = false
-                            ledsState[3] = false
-                        }
-                )
+            SubscriptionCheckbox(
+                label = "Compteur bouton 1",
+                checked = isChecked1,
+                onCheckedChange = onCheckedChange1
+            )
 
-                Icon(
-                    imageVector = if (ledsState[3] == true) Icons.Filled.Lightbulb else Icons.Outlined.Lightbulb,
-                    contentDescription = "LED Rouge",
-                    tint = Color.Red,
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clickable {
-                            ledsState[3] = !(ledsState[3] ?: false)
-                            onLedToggle(3)
-                            ledsState[1] = false
-                            ledsState[2] = false
-                        }
-                )
-            }
-            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = isChecked1, onCheckedChange = onCheckedChange1)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Abonnez-vous au compteur du bouton 1")
-            }
-            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = isChecked3, onCheckedChange = onCheckedChange3)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Abonnez-vous au compteur du bouton 3")
-            }
+            SubscriptionCheckbox(
+                label = "Compteur bouton 3",
+                checked = isChecked3,
+                onCheckedChange = onCheckedChange3
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(140.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "Bouton 1", color = Color.White, fontWeight = FontWeight.Bold)
-                        Text(text = "$cptb1", color = Color.White, fontSize = 24.sp)
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(140.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "Bouton 3", color = Color.White, fontWeight = FontWeight.Bold)
-                        Text(text = "$cptb3", color = Color.White, fontSize = 24.sp)
-                    }
-                }
+                CounterCard("Bouton 1", cptb1)
+                CounterCard("Bouton 3", cptb3)
             }
+        }
+    }
+}
+
+@Composable
+fun InfoRow(label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(text = label, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = value)
+    }
+}
+
+@Composable
+fun LedIcon(id: Int, isOn: Boolean, color: Color, onClick: () -> Unit) {
+    Icon(
+        imageVector = if (isOn) Icons.Filled.Lightbulb else Icons.Outlined.Lightbulb,
+        contentDescription = "LED $id",
+        tint = color,
+        modifier = Modifier
+            .size(64.dp)
+            .clickable { onClick() }
+    )
+}
+
+@Composable
+fun SubscriptionCheckbox(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = label)
+    }
+}
+
+@Composable
+fun CounterCard(label: String, value: Int) {
+    Box(
+        modifier = Modifier
+            .size(140.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.primary)
+            .padding(12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = label, color = Color.White, fontWeight = FontWeight.Bold)
+            Text(text = "$value", color = Color.White, fontSize = 52.sp)
         }
     }
 }

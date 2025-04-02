@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import fr.isen.vincenti.androidsmartdevice.ui.theme.AndroidSmartDeviceTheme
+import fr.isen.vincenti.androidsmartdevice.views.BottomBar
 import fr.isen.vincenti.androidsmartdevice.views.HomeScreen
 import fr.isen.vincenti.androidsmartdevice.views.TopBar
 
@@ -24,6 +25,7 @@ class MainActivity : ComponentActivity() {
             AndroidSmartDeviceTheme {
                 Scaffold(
                     topBar = { TopBar() },
+                    bottomBar = { BottomBar(context) },
                     modifier =
                         Modifier.fillMaxSize()) { innerPadding ->
                         HomeScreen(modifier = Modifier.padding(innerPadding), context = context)

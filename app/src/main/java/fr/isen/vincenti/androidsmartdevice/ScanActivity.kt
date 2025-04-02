@@ -18,7 +18,6 @@ import androidx.core.content.ContextCompat
 import fr.isen.vincenti.androidsmartdevice.ui.theme.AndroidSmartDeviceTheme
 import fr.isen.vincenti.androidsmartdevice.views.ScanScreen
 import fr.isen.vincenti.androidsmartdevice.views.TopBar
-import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
@@ -33,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import fr.isen.vincenti.androidsmartdevice.models.Device
 
 
 class ScanActivity : ComponentActivity() {

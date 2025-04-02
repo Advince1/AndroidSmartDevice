@@ -1,8 +1,6 @@
 package fr.isen.vincenti.androidsmartdevice.views
 
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -25,18 +23,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import fr.isen.vincenti.androidsmartdevice.Device
+import fr.isen.vincenti.androidsmartdevice.models.Device
 
 @Composable
 fun ScanScreen(
@@ -61,22 +53,39 @@ fun ScanScreen(
             horizontalArrangement = Arrangement.Center
         ) {
             Text(text = if (isScanning) "Scan en cours..." else "Lancer le scan BLE")
-            Icon(
-                imageVector = if (isScanning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+            Box(
                 modifier = Modifier
-                    .size(64.dp)
                     .padding(8.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(50)
+                    )
                     .clickable {
                         when {
-                            bluetoothAdapter == null ->
-                                Toast.makeText(context, "Bluetooth non disponible", Toast.LENGTH_SHORT).show()
-                            !bluetoothAdapter.isEnabled ->
-                                Toast.makeText(context, "Bluetooth non activé", Toast.LENGTH_SHORT).show()
+                            bluetoothAdapter == null -> Toast
+                                .makeText(context, "Bluetooth non disponible", Toast.LENGTH_SHORT)
+                                .show()
+                            !bluetoothAdapter.isEnabled -> Toast
+                                .makeText(context, "Bluetooth non activé", Toast.LENGTH_SHORT)
+                                .show()
                             else -> onScanToggle()
                         }
-                    }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isScanning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (isScanning) "Pause" else "Démarrer",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(42.dp)
+                )
+            }
+        }
+        if (isScanning) {
+            androidx.compose.material3.LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
         LazyColumn {

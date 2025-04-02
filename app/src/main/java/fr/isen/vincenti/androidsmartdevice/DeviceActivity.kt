@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import fr.isen.vincenti.androidsmartdevice.models.Device
 import fr.isen.vincenti.androidsmartdevice.ui.theme.AndroidSmartDeviceTheme
 import fr.isen.vincenti.androidsmartdevice.views.DeviceScreen
 import fr.isen.vincenti.androidsmartdevice.views.TopBar
