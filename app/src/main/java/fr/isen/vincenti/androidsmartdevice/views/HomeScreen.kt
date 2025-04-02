@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun HomeScreen(modifier: Modifier, context: Context) {
+fun HomeScreen(modifier: Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()

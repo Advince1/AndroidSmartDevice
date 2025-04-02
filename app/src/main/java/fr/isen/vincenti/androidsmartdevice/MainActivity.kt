@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
                     bottomBar = { BottomBar(context) },
                     modifier =
                         Modifier.fillMaxSize()) { innerPadding ->
-                        HomeScreen(modifier = Modifier.padding(innerPadding), context = context)
+                        HomeScreen(modifier = Modifier.padding(innerPadding))
                 }
             }
         }

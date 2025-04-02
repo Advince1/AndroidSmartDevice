@@ -36,7 +36,6 @@ import fr.isen.vincenti.androidsmartdevice.models.Device
 
 
 class ScanActivity : ComponentActivity() {
-    val context = this
     private val REQUEST_CODE_BLUETOOTH_PERMISSIONS = 1
 
     private val bluetoothLeScanner by lazy {

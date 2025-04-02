@@ -161,15 +161,6 @@ fun DeviceScreen(
 }
 
 @Composable
-fun InfoRow(label: String, value: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text = label, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = value)
-    }
-}
-
-@Composable
 fun LedIcon(id: Int, isOn: Boolean, color: Color, onClick: () -> Unit) {
     Icon(
         imageVector = if (isOn) Icons.Filled.Lightbulb else Icons.Outlined.Lightbulb,
